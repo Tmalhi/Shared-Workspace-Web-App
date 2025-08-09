@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Add Workspace - Rent a Property</title>
+  <!-- Link to external stylesheet -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Company logo -->
+  <img src="logo.png" alt="Rent a Property Logo" class="logo" />
+  <!-- Main page heading -->
+  <h1 class="mainHead">Rent a Property</h1>
+
+  <!-- Navigation bar with links -->
+  <nav class="navbar">
+    <a href="addproperties.html">Add Property</a>
+    <a href="addWorkspace.html" aria-current="page">Add Workspace</a> <!-- Current page -->
+    <a href="Manproperties.html">Manage Properties</a>
+    <a href="myProperties.html">My Properties</a>
+    <a href="indexx.html">Log out</a>
+  </nav>
+
+  <!-- Main form container -->
+  <main class="form-container">
+    <form id="workspaceForm" novalidate>
+      <h2>Add Workspace</h2>
+
+      <!-- Property selection dropdown populated dynamically -->
+      <label for="propertySelect">Select Property:</label>
+      <select id="propertySelect" name="propertySelect" required>
+        <option value="" disabled selected>Select your property</option>
+      </select>
+
+      <!-- Workspace type input -->
+      <label for="type">Type:</label>
+      <input type="text" id="type" name="type" required placeholder="e.g. Private Office" />
+
+      <!-- Workspace capacity input -->
+      <label for="capacity">Capacity:</label>
+      <input type="number" id="capacity" name="capacity" min="1" required placeholder="e.g. 5" />
+
+      <!-- Smoking allowed dropdown -->
+      <label for="smoking">Smoking:</label>
+      <select id="smoking" name="smoking" required>
+        <option value="" disabled selected>Select smoking option</option>
+        <option value="Yes">Yes</option>
+        <option value="No">No</option>
+      </select>
+
+      <!-- Availability status dropdown -->
+      <label for="availability">Availability:</label>
+      <select id="availability" name="availability" required>
+        <option value="" disabled selected>Select availability</option>
+        <option value="Available">Available</option>
+        <option value="Unavailable">Unavailable</option>
+      </select>
+
+      <!-- Lease term input -->
+      <label for="leaseTerm">Lease Term:</label>
+      <input type="text" id="leaseTerm" name="leaseTerm" required placeholder="e.g. 6 months" />
+
+      <!-- Price input -->
+      <label for="price">Price ($):</label>
+      <input type="number" id="price" name="price" min="0" required placeholder="e.g. 500" />
+
+      <!-- Submit button -->
+      <button type="submit">Add Workspace</button>
+    </form>
+  </main>
+
+  <!-- Link to external JavaScript file -->
+  <script src="addWorkspace.js"></script>
+</body>
+</html>

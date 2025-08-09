@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Ensures proper scaling on different devices -->
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Add Property - Rent a Property</title>
+  <!-- Link to external CSS file -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Logo image with alt text and styling class -->
+  <img src="logo.png" alt="Rent a Property Logo" class="logo" />
+  
+  <!-- Main heading -->
+  <h1 class="mainHead">Rent a Property</h1>
+
+  <!-- Navigation bar with links to other pages -->
+  <nav class="navbar">
+    <a href="addproperties.html" aria-current="page">Add Property</a>
+    <a href="addWorkspace.html">Add Workspace</a>
+    <a href="Manproperties.html">Manage Properties</a>
+    <a href="myProperties.html">My Properties</a>
+    <a href="indexx.html">Log out</a>
+  </nav>
+
+  <!-- Main content area containing the form -->
+  <main class="form-container">
+    <form id="propertyForm" novalidate>
+      <!-- Form heading -->
+      <h2>Add New Property</h2>
+
+      <!-- Input field for property address -->
+      <label for="address">Address:</label>
+      <input
+        type="text"
+        id="address"
+        name="address"
+        required
+        placeholder="Enter address"
+      />
+
+      <!-- Input field for neighborhood -->
+      <label for="neighborhood">Neighborhood:</label>
+      <input
+        type="text"
+        id="neighborhood"
+        name="neighborhood"
+        required
+        placeholder="Enter neighborhood"
+      />
+
+      <!-- Numeric input for square footage -->
+      <label for="sqft">Square Footage:</label>
+      <input
+        type="number"
+        id="sqft"
+        name="sqft"
+        min="1"
+        required
+        placeholder="e.g. 1500"
+      />
+
+      <!-- Dropdown select for parking availability -->
+      <label for="parking">Parking:</label>
+      <select id="parking" name="parking" required>
+        <option value="" disabled selected>-- Select Parking --</option>
+        <option value="Yes">Yes</option>
+        <option value="No">No</option>
+      </select>
+
+      <!-- Dropdown select for transit availability -->
+      <label for="transit">Transit:</label>
+      <select id="transit" name="transit" required>
+        <option value="" disabled selected>-- Select Transit --</option>
+        <option value="Yes">Yes</option>
+        <option value="No">No</option>
+      </select>
+
+      <!-- Submit button to add property -->
+      <button type="submit">Add Property</button>
+    </form>
+  </main>
+
+  <!-- Link to external JavaScript file handling form logic -->
+  <script src="addProperty.js"></script>
+</body>
+</html>
