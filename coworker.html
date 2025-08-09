@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Coworker - Browse Properties</title>
+  <!-- Link to external CSS stylesheet -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Logo image for the site -->
+  <img src="logo.png" alt="Rent a Property Logo" class="logo" />
+  
+  <!-- Main page heading -->
+  <h1 class="mainHead">Rent A Property</h1>
+  
+  <!-- Navigation bar with links -->
+  <div class="navbar">
+    <!-- Current active page is "Browse Properties" -->
+    <a href="coworker.html" class="active">Browse Properties</a>
+    <a href="indexx.html">Log out</a>
+  </div>
+
+  <!-- Main container for page content -->
+  <div class="container">
+    <!-- Search and sorting controls -->
+    <div class="search-sort-bar">
+      <!-- Input field for searching properties -->
+      <input type="text" id="searchInput" placeholder="Search properties..." />
+      
+      <!-- Dropdown for sorting options -->
+      <select id="sortSelect">
+        <option value="">Sort by</option>
+        <option value="name-asc">Name (A → Z)</option>
+        <option value="name-desc">Name (Z → A)</option>
+        <option value="price-asc">Price (Low → High)</option>
+        <option value="price-desc">Price (High → Low)</option>
+      </select>
+    </div>
+
+    <!-- Container where property listings will be dynamically displayed -->
+    <div id="propertyList" class="property-listing">
+      <!-- Property cards will be injected here by JavaScript -->
+    </div>
+  </div>
+
+  <!-- Link to external JavaScript file for functionality -->
+  <script src="coworker.js"></script>
+</body>
+</html>
