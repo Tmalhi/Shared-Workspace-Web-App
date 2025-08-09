@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>My Properties - Rent a Property</title>
+  <!-- Link to external CSS stylesheet -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Website logo -->
+  <img src="logo.png" alt="Rent a Property Logo" class="logo" />
+  
+  <!-- Main heading of the page -->
+  <h1 class="mainHead">Rent a Property</h1>
+
+  <!-- Navigation bar with links to other pages -->
+  <div class="navbar">
+    <a href="addproperties.html">Add Property</a>
+    <a href="addWorkspace.html">Add Workspace</a>
+    <a href="Manproperties.html">Manage Properties</a>
+    <a href="myProperties.html">My Properties</a>
+    <!-- Logout link to clear session and redirect -->
+    <a href="#" id="logoutLink">Log out</a>
+  </div>
+
+  <!-- Main container for page content -->
+  <div class="container">
+    <div style="width: 100%;">
+      <!-- Section heading -->
+      <h2 style="text-align: center;">My Properties and Workspaces</h2>
+      <!-- Placeholder div where properties and workspaces will be displayed -->
+      <div id="output"></div>
+
+      <!-- Links to add new property or workspace -->
+      <p style="text-align: center; margin-top: 20px;">
+        <a href="addproperties.html">➕ Add Property</a> |
+        <a href="addWorkspace.html">➕ Add Workspace</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- External JavaScript file to handle properties logic -->
+  <script src="myProperties.js"></script>
+
+  <script>
+    // Logout button event listener
+    // On click, it removes the 'loggedInUser' from localStorage and redirects to index page
+    document.getElementById('logoutLink').addEventListener('click', e => {
+      e.preventDefault();
+      localStorage.removeItem('loggedInUser');
+      window.location.href = 'indexx.html'; // Note: double 'x' in filename, check if intended
+    });
+  </script>
+</body>
+</html>
