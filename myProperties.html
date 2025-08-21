@@ -20,7 +20,9 @@
     <a href="Manproperties.html">Manage Properties</a>
     <a href="myProperties.html">My Properties</a>
     <!-- Logout link to clear session and redirect -->
-    <a href="index.html" id="logoutLink">Log out</a>
+  
+    <li><a href="#" id="logoutLink">Log out</a></li>
+
   </div>
 
   <!-- Main container for page content -->
@@ -40,7 +42,11 @@
   </div>
 
   <!-- External JavaScript file to handle properties logic -->
+   <script src="helpers.js"></script>
   <script src="myProperties.js"></script>
+  <script>
+  setupLogout('logoutLink');
+</script>
 
   <script>
     // Logout button event listener
@@ -53,5 +59,3 @@
   </script>
 </body>
 </html>
-
-

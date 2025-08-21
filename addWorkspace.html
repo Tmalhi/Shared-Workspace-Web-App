@@ -20,6 +20,8 @@
     <a href="Manproperties.html">Manage Properties</a>
     <a href="myProperties.html">My Properties</a>
     <a href="index.html">Log out</a>
+    
+
   </nav>
 
   <!-- Main form container -->
@@ -33,9 +35,15 @@
         <option value="" disabled selected>Select your property</option>
       </select>
 
-      <!-- Workspace type input -->
-      <label for="type">Type:</label>
-      <input type="text" id="type" name="type" required placeholder="e.g. Private Office" />
+      <!-- Workspace type (FIX: dropdown with 3 types) -->
+   <label for="type">Type:</label>
+  <select id="type" name="type" required>
+  <option value="" disabled selected>Select type</option>
+  <option value="private_office">Private Office</option>
+  <option value="meeting_room">Meeting Room</option>
+  <option value="desk">Hot Desk</option>
+</select>
+
 
       <!-- Workspace capacity input -->
       <label for="capacity">Capacity:</label>
@@ -49,17 +57,27 @@
         <option value="No">No</option>
       </select>
 
-      <!-- Availability status dropdown -->
-      <label for="availability">Availability:</label>
-      <select id="availability" name="availability" required>
-        <option value="" disabled selected>Select availability</option>
-        <option value="Available">Available</option>
-        <option value="Unavailable">Unavailable</option>
-      </select>
+     
+   <label for="availability">Available From:</label>
+   <input type="date" id="availability" name="availability" required />
 
-      <!-- Lease term input -->
-      <label for="leaseTerm">Lease Term:</label>
-      <input type="text" id="leaseTerm" name="leaseTerm" required placeholder="e.g. 6 months" />
+
+<label for="leaseTerm">Lease Term:</label>
+<select id="leaseTerm" name="leaseTerm" required>
+  <option value="" disabled selected>Select lease term</option>
+  <option value="day">Day</option>
+  <option value="week">Week</option>
+  <option value="month">Month</option>
+</select>
+
+<!-- Photos (URLs) -->
+<div class="form-group">
+  <label for="photoUrl">Photo URL:</label>
+  <input type="url" id="photoUrl" placeholder="https://example.com/image.jpg" />
+  <button type="button" id="addPhotoBtn">+ Add Photo</button>
+</div>
+<ul id="photosList"></ul>
+
 
       <!-- Price input -->
       <label for="price">Price ($):</label>
@@ -71,7 +89,10 @@
   </main>
 
   <!-- Link to external JavaScript file -->
+   <script src="helpers.js"></script>
   <script src="addWorkspace.js"></script>
+  <script>
+  setupLogout('logoutLink');
+</script>
 </body>
 </html>
-

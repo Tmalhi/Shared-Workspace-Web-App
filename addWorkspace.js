@@ -1,120 +1,95 @@
-document.addEventListener("DOMContentLoaded", () => {
-  // Get the property selection dropdown element
-  const propertySelect = document.getElementById("propertySelect");
-  // Get the currently logged-in user from localStorage
-  const currentUser = JSON.parse(localStorage.getItem("loggedInUser"));
+document.addEventListener('DOMContentLoaded', async () => {
+  const propertySelect = document.getElementById('propertySelect');
+  const currentUser = JSON.parse(localStorage.getItem('loggedInUser'));
+  if (!currentUser) { alert('You must be logged in to add a workspace.'); window.location.href = 'login.html'; return; }
 
-  // If no user is logged in, redirect to login page
-  if (!currentUser) {
-    alert("You must be logged in to add a workspace.");
-    window.location.href = "login.html";
+  // Load owner properties from API
+  try {
+    const res = await fetch(`${API}/api/properties/mine`, { headers: { ...authHeaders() } });
+    const out = await res.json();
+    if (!out.ok) throw new Error(out.error || 'Failed to load properties');
+
+    const userProps = out.data;
+    propertySelect.innerHTML = '<option value="" disabled selected>Select your property</option>';
+    if (!userProps.length) { alert('You have no properties yet. Redirecting to Add Property...'); window.location.href = 'addproperties.html'; return; }
+    userProps.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p._id;
+      opt.textContent = `${p.address} (${p.neighborhood})`;
+      propertySelect.appendChild(opt);
+    });
+    propertySelect.disabled = false;
+  } catch {
+    alert('Could not load your properties.');
     return;
   }
 
-  // Retrieve all properties from localStorage (or empty array if none)
-  let allProperties = JSON.parse(localStorage.getItem("properties") || "[]");
-  // Filter properties owned by the logged-in user
-  let userProperties = allProperties.filter(p => p.owner === currentUser.email);
+  const form = document.getElementById('workspaceForm');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
 
-  // Function to populate the property select dropdown with user properties
-  function populateSelect() {
-    // Reset dropdown and add default disabled option
-    propertySelect.innerHTML = '<option value="" disabled selected>Select your property</option>';
-    
-    // If user has no properties, show alert and disable dropdown
-    if (userProperties.length === 0) {
-      alert("You have no properties yet. Please add one first.");
-      propertySelect.disabled = true;
-      return;
-    }
-    
-    // Add each user property as an option in the select dropdown
-    userProperties.forEach((p) => {
-      const option = document.createElement("option");
-      option.value = p.id; // property ID as value
-      option.textContent = `${p.address} (${p.neighborhood})`; // display address & neighborhood
-      propertySelect.appendChild(option);
-    });
+    if (!propertySelect.value) return alert('Please select a property.');
+    if (!form.smoking.value) return alert('Please select smoking option.');
+    if (!form.availability.value) return alert('Please select availability.');
+    if (!form.type.value) return alert('Please select a workspace type.');
+    if (!form.leaseTerm.value) return alert('Please select a lease term.');
 
-    // Enable dropdown if properties are available
-    propertySelect.disabled = false;
-  }
-
-  // Populate the select dropdown on page load
-  populateSelect();
-
-  // Get the form element
-  const form = document.getElementById("workspaceForm");
-
-  // Listen for form submission
-  form.addEventListener("submit", (e) => {
-    e.preventDefault(); // prevent page reload
-
-    // Basic validation for select inputs
-    if (!propertySelect.value) {
-      alert("Please select a property.");
-      return;
-    }
-    if (!form.smoking.value) {
-      alert("Please select smoking option.");
-      return;
-    }
-    if (!form.availability.value) {
-      alert("Please select availability.");
-      return;
-    }
-
-    // Create a new workspace object with form data
-    const workspace = {
-      type: form.type.value.trim(),
-      capacity: Number(form.capacity.value),
-      smoking: form.smoking.value,
-      availability: form.availability.value,
-      leaseTerm: form.leaseTerm.value.trim(),
-      price: Number(form.price.value),
-      owner: currentUser.email
+    const payload = {
+      property: propertySelect.value,
+      type: form.type.value,                           // meeting_room | private_office | desk
+      seats: Number(form.capacity.value),
+      smokingAllowed: form.smoking.value === 'Yes',
+      availableFrom: new Date(form.availability.value).toISOString(),
+      leaseTerm: form.leaseTerm.value.toLowerCase(),   // day | week | month
+      price: Number(form.price.value)
     };
 
-    // Validate required fields and number ranges
-    if (
-      !workspace.type ||
-      workspace.capacity <= 0 ||
-      !workspace.leaseTerm ||
-      workspace.price < 0
-    ) {
-      alert("Please fill out all fields with valid values.");
-      return;
+    if (!payload.type || payload.seats <= 0 || !payload.leaseTerm || payload.price < 0)
+      return alert('Please fill out all fields with valid values.');
+
+    try {
+      const res = await fetch(`${API}/api/workspaces`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify(payload)
+      });
+      const out = await res.json();
+      if (!out.ok) return alert(out.error || 'Failed to add workspace');
+
+      alert('Workspace added successfully!');
+      form.reset();
+      propertySelect.selectedIndex = 0;
+      window.location.href = 'myProperties.html';
+    } catch {
+      alert('Network error.');
     }
-
-    // Find index of the selected property in the allProperties array
-    const propertyId = Number(propertySelect.value);
-    const index = allProperties.findIndex(p => p.id === propertyId);
-
-    if (index === -1) {
-      alert("Selected property not found.");
-      return;
-    }
-
-    // Initialize the workspaces array if it doesn't exist
-    if (!Array.isArray(allProperties[index].workspaces)) {
-      allProperties[index].workspaces = [];
-    }
-
-    // Add the new workspace to the selected property's workspace list
-    allProperties[index].workspaces.push(workspace);
-
-    // Save the updated properties back to localStorage
-    localStorage.setItem("properties", JSON.stringify(allProperties));
-
-    alert("Workspace added successfully!");
-
-    // Reset the form fields
-    form.reset();
-
-    // Reset the property select dropdown to the default option
-    propertySelect.selectedIndex = 0;
-
-    // Redirect to the user's properties page
-    window.location.href = "myProperties.html";
   });
 });
+const photos = [];
+const photoUrlInput = document.getElementById('photoUrl');
+const addPhotoBtn = document.getElementById('addPhotoBtn');
+const photosList = document.getElementById('photosList');
+
+function renderPhotos() {
+  photosList.innerHTML = photos.map((u, i) => `
+    <li>
+      <img src="${u}" alt="photo" style="width:80px;height:60px;object-fit:cover;border-radius:6px;margin-right:8px;">
+      ${u}
+      <button type="button" data-i="${i}" class="removePhoto">x</button>
+    </li>
+  `).join('');
+  photosList.querySelectorAll('.removePhoto').forEach(btn => {
+    btn.onclick = () => { photos.splice(Number(btn.dataset.i), 1); renderPhotos(); };
+  });
+}
+
+if (addPhotoBtn) {
+  addPhotoBtn.onclick = () => {
+    const url = (photoUrlInput.value || '').trim();
+    if (!url) return alert('Enter a URL');
+    photos.push(url);
+    photoUrlInput.value = '';
+    renderPhotos();
+  };
+}
+

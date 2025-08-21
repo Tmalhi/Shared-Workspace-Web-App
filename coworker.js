@@ -1,96 +1,174 @@
-// coworker.js
+console.log("coworker.js — MODAL VERSION loaded ✅", Date.now());
 
-// Run code when the DOM is fully loaded
-document.addEventListener("DOMContentLoaded", function () {
-    // Get references to DOM elements
-    const propertyList = document.getElementById("propertyList");
-    const searchInput = document.getElementById("searchInput");
-    const sortSelect = document.getElementById("sortSelect");
 
-    // Load properties data from localStorage, or empty array if none found
-    let properties = JSON.parse(localStorage.getItem("properties") || "[]");
+document.addEventListener('DOMContentLoaded', async function () {
+  const propertyList = document.getElementById('propertyList');
+  const searchInput = document.getElementById('searchInput');
+  const sortSelect = document.getElementById('sortSelect');
 
-    // Function to render a list of properties into the propertyList container
-    function renderProperties(list) {
-        // Clear any existing content
-        propertyList.innerHTML = "";
+  // Modal refs
+  const modal = document.getElementById('wsModal');
+  const modalClose = document.getElementById('wsModalClose');
+  const modalContent = document.getElementById('wsModalContent');
 
-        // Show message if no properties available to display
-        if (list.length === 0) {
-            propertyList.innerHTML = `<p class="no-listings">📭 No properties found.</p>`;
-            return;
-        }
+  function openModal(html) {
+    modalContent.innerHTML = html;
+    modal.setAttribute('aria-hidden', 'false');
+  }
+  function closeModal() {
+    modal.setAttribute('aria-hidden', 'true');
+    modalContent.innerHTML = '';
+  }
+  modalClose.addEventListener('click', closeModal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal(); // click outside dialog
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeModal();
+  });
 
-        // Loop through each property and create its card element
-        list.forEach(p => {
-            const card = document.createElement("div");
-            card.classList.add("property-card");
+  async function fetchSearch(params = {}) {
+    const q = new URLSearchParams(params).toString();
+    const res = await fetch(`${API}/api/workspaces/search${q ? `?${q}` : ''}`);
+    const out = await res.json();
+    if (!out.ok) throw new Error(out.error || 'Search failed');
+    return out.data;
+  }
 
-            // Build inner HTML for the property card, including details and workspace info
-            card.innerHTML = `
-                <h2>${p.address}</h2>
-                <p><strong>🏘 Neighborhood:</strong> ${p.neighborhood}</p>
-                <p><strong>📐 Sqft:</strong> ${p.sqft}</p>
-                <p><strong>🚗 Parking:</strong> ${p.parking}</p>
-                <p><strong>🚉 Transit:</strong> ${p.transit}</p>
-                <hr>
-                <p><strong>📧 Owner Email:</strong> <a href="mailto:${p.owner}">${p.owner}</a></p>
-                ${p.ownerPhone ? `<p><strong>📞 Phone:</strong> <a href="tel:${p.ownerPhone}">${p.ownerPhone}</a></p>` : ""}
-                <hr>
-                ${p.workspaces && p.workspaces.length > 0 ? `
-                    <h3>Workspaces:</h3>
-                    <ul>
-                        ${p.workspaces.map(w => `
-                            <li>
-                                <strong>${w.type}</strong> — Capacity: ${w.capacity}, Price: $${w.price}, Lease: ${w.leaseTerm}, Smoking: ${w.smoking}, Availability: ${w.availability}
-                            </li>
-                        `).join("")}
-                    </ul>
-                ` : "<p>No workspaces listed.</p>"}
-            `;
+  function toCard(ws) {
+    const p = ws.property || {};
+    const owner = p.owner || {};
 
-            // Add the created card to the property list container
-            propertyList.appendChild(card);
-        });
+    const card = document.createElement('div');
+    card.classList.add('property-card');
+
+    const firstPhoto = (p.photos && p.photos[0])
+      ? `<img src="${p.photos[0]}" alt="" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;margin-bottom:8px;">`
+      : '';
+
+    card.innerHTML = `
+      ${firstPhoto}
+      <h2>${ws.type} — $${ws.price}</h2>
+      <p><strong>🏘 Address:</strong> ${p.address || ''}</p>
+      <p><strong>📍 Neighborhood:</strong> ${p.neighborhood || ''}</p>
+      <p><strong>📐 Sqft:</strong> ${p.squareFeet || ''} •
+         <strong>🚗 Parking:</strong> ${p.hasParking ? 'Yes' : 'No'} •
+         <strong>🚉 Transit:</strong> ${p.hasTransit ? 'Yes' : 'No'}</p>
+      <p><strong>👥 Seats:</strong> ${ws.seats} •
+         <strong>🚬 Smoking:</strong> ${ws.smokingAllowed ? 'Allowed' : 'Not Allowed'} •
+         <strong>📆 Available from:</strong> ${new Date(ws.availableFrom).toLocaleDateString()} •
+         <strong>📄 Lease:</strong> ${ws.leaseTerm}</p>
+      <div style="margin-top:8px;">
+        <button class="openDetails modal__btn modal__btn--primary">View Details</button>
+      </div>
+    `;
+
+    card.querySelector('.openDetails').addEventListener('click', () => {
+      // mailto link with prefilled subject/body
+      const subject = encodeURIComponent(`Inquiry about ${ws.type} at ${p.address || 'your property'}`);
+      const body = encodeURIComponent(
+        `Hi ${owner.name || ''},%0D%0A%0D%0A` +
+        `I'm interested in the ${ws.type} listed at ${p.address || ''}.%0D%0A` +
+        `Seats: ${ws.seats}%0D%0A` +
+        `Lease: ${ws.leaseTerm}%0D%0A` +
+        `Available from: ${new Date(ws.availableFrom).toLocaleDateString()}%0D%0A%0D%0A` +
+        `Please let me know if it's available. Thanks!`
+      );
+      const mailHref = owner.email ? `mailto:${owner.email}?subject=${subject}&body=${body}` : null;
+      const telHref = owner.phone ? `tel:${owner.phone.replace(/\s+/g, '')}` : null;
+
+      // photos gallery
+      const photos = (p.photos && p.photos.length)
+        ? `<div class="modal__photos">${p.photos.map(u => `<img src="${u}" alt="photo">`).join('')}</div>`
+        : '';
+
+      const html = `
+        <div class="modal__header">
+          <h2 id="wsModalTitle" style="margin:0 36px 6px 0;">${ws.type} — $${ws.price}</h2>
+          <p style="margin:0;color:#666;">${p.address || ''}${p.neighborhood ? ' • ' + p.neighborhood : ''}</p>
+        </div>
+
+        ${photos}
+
+        <div class="modal__grid">
+          <p><strong>Seats:</strong> ${ws.seats}</p>
+          <p><strong>Smoking:</strong> ${ws.smokingAllowed ? 'Allowed' : 'Not Allowed'}</p>
+          <p><strong>Available from:</strong> ${new Date(ws.availableFrom).toLocaleDateString()}</p>
+          <p><strong>Lease term:</strong> ${ws.leaseTerm}</p>
+          <p><strong>Sqft:</strong> ${p.squareFeet ?? '—'}</p>
+          <p><strong>Parking:</strong> ${p.hasParking ? 'Yes' : 'No'}</p>
+          <p><strong>Transit:</strong> ${p.hasTransit ? 'Yes' : 'No'}</p>
+        </div>
+
+        <hr style="margin:12px 0;">
+
+        <div>
+          <p style="margin:0 0 6px;"><strong>Owner:</strong> ${owner.name || 'N/A'}</p>
+          <p style="margin:0;"><strong>Email:</strong> ${
+            owner.email ? `<a href="${mailHref}" id="emailLink">${owner.email}</a>` : 'N/A'
+          }</p>
+          <p style="margin:0;"><strong>Phone:</strong> ${
+            owner.phone ? `<a href="${telHref}">${owner.phone}</a>` : 'N/A'
+          }</p>
+        </div>
+
+        <div class="modal__actions">
+          ${mailHref ? `<a class="modal__btn modal__btn--primary" href="${mailHref}">Email Owner</a>` : ''}
+          ${telHref ? `<a class="modal__btn" href="${telHref}">Call</a>` : ''}
+          <button class="modal__btn" id="closeModalBtn">Close</button>
+        </div>
+      `;
+
+      openModal(html);
+
+      // Close button inside content
+      const closeBtn = document.getElementById('closeModalBtn');
+      if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    });
+
+    return card;
+  }
+
+  function render(list) {
+    propertyList.innerHTML = '';
+    if (!list.length) {
+      propertyList.innerHTML = `<p class="no-listings">📭 No workspaces found.</p>`;
+      return;
     }
+    list.forEach(ws => propertyList.appendChild(toCard(ws)));
+  }
 
-    // Initially render all properties on page load
-    renderProperties(properties);
+  // initial load
+  try {
+    render(await fetchSearch());
+  } catch (e) {
+    console.error(e);
+    propertyList.innerHTML = '<p>Failed to load listings.</p>';
+  }
 
-    // Add event listener for live search input filtering
-    searchInput.addEventListener("input", () => {
-        const query = searchInput.value.toLowerCase();
+  // search by neighborhood/address keyword
+  searchInput.addEventListener('input', async () => {
+    const q = searchInput.value.trim().toLowerCase();
+    try { render(await fetchSearch(q ? { neighborhood: q } : {})); } catch (e) { console.error(e); }
+  });
 
-        // Filter properties based on whether address or neighborhood includes the search query
-        const filtered = properties.filter(p =>
-            p.address.toLowerCase().includes(query) ||
-            p.neighborhood.toLowerCase().includes(query)
-        );
+  // sorting
+  sortSelect.addEventListener('change', async () => {
+    let sortBy = '';
+    if (sortSelect.value === 'name-asc' || sortSelect.value === 'name-desc') {
+      const list = await fetchSearch();
+      list.sort((a, b) =>
+        (a.type || '').localeCompare(b.type || '') * (sortSelect.value === 'name-desc' ? -1 : 1)
+      );
+      render(list);
+      return;
+    }
+    if (sortSelect.value === 'price-asc') sortBy = 'price';
+    if (sortSelect.value === 'price-desc') sortBy = 'price';
+    if (sortSelect.value === 'available') sortBy = 'available';
 
-        // Render filtered list
-        renderProperties(filtered);
-    });
-
-    // Add event listener for sort selection changes
-    sortSelect.addEventListener("change", () => {
-        const value = sortSelect.value;
-        // Create a shallow copy of properties array for sorting
-        let sorted = [...properties];
-
-        // Sort based on selected criteria
-        if (value === "name-asc") {
-            sorted.sort((a, b) => a.address.localeCompare(b.address));
-        } else if (value === "name-desc") {
-            sorted.sort((a, b) => b.address.localeCompare(a.address));
-        } else if (value === "price-asc") {
-            // Sort by price of first workspace (or 0 if none)
-            sorted.sort((a, b) => (a.workspaces?.[0]?.price || 0) - (b.workspaces?.[0]?.price || 0));
-        } else if (value === "price-desc") {
-            // Sort by price descending of first workspace (or 0 if none)
-            sorted.sort((a, b) => (b.workspaces?.[0]?.price || 0) - (a.workspaces?.[0]?.price || 0));
-        }
-
-        // Render the sorted list
-        renderProperties(sorted);
-    });
+    const list = await fetchSearch(sortBy ? { sortBy } : {});
+    if (sortSelect.value === 'price-desc') list.reverse();
+    render(list);
+  });
 });

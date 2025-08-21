@@ -1,177 +1,181 @@
-// Load properties array from localStorage or initialize as empty array if none found
-let properties = JSON.parse(localStorage.getItem("properties") || "[]");
+let properties = []; // fetched from API
+const output = document.getElementById('output');
 
-// Get the output container element where properties and workspaces will be displayed
-const output = document.getElementById("output");
+function saveRender() { render(); } // render-only; server persists
 
-// Save updated properties to localStorage and re-render the list
-function save() {
-  localStorage.setItem("properties", JSON.stringify(properties));
+async function loadMine() {
+  const res = await fetch(`${API}/api/properties/mine`, { headers: { ...authHeaders() } });
+  const out = await res.json();
+  if (!out.ok) throw new Error(out.error || 'Failed to load');
+  properties = out.data;
   render();
 }
 
-// Render the list of properties and their workspaces
 function render() {
-  output.innerHTML = ""; // Clear previous content
+  output.innerHTML = '';
+  if (!properties.length) { output.innerHTML = '<p>No properties to manage.</p>'; return; }
 
-  // Show message if no properties to manage
-  if (properties.length === 0) {
-    output.innerHTML = "<p>No properties to manage.</p>";
-    return;
-  }
-
-  // Loop through each property
-  properties.forEach((property, pIndex) => {
-    // Generate HTML for each workspace under this property
-    const workspacesHTML = property.workspaces?.map((w, wIndex) => `
+  properties.forEach((p, pIndex) => {
+    const workspacesHTML = (p.workspaces?.map((w, wIndex) => `
       <div class="property-info" id="workspace-${pIndex}-${wIndex}">
         <p><strong>Type:</strong> ${w.type}</p>
-        <p><strong>Capacity:</strong> ${w.capacity}</p>
-        <p><strong>Smoking:</strong> ${w.smoking}</p>
-        <p><strong>Availability:</strong> ${w.availability}</p>
+        <p><strong>Seats:</strong> ${w.seats}</p>
+        <p><strong>Smoking:</strong> ${w.smokingAllowed ? 'Yes' : 'No'}</p>
+        <p><strong>Available From:</strong> ${new Date(w.availableFrom).toLocaleDateString()}</p>
         <p><strong>Lease Term:</strong> ${w.leaseTerm}</p>
         <p><strong>Price:</strong> $${w.price}</p>
-        <button onclick="enableWorkspaceEdit(${pIndex}, ${wIndex})">Update</button>
-        <button onclick="deleteWorkspace(${pIndex}, ${wIndex})">Delete</button>
+        <button onclick="enableWorkspaceEdit('${p._id}','${w._id}', ${pIndex}, ${wIndex})">Update</button>
+        <button onclick="deleteWorkspace('${w._id}', ${pIndex}, ${wIndex})">Delete</button>
       </div>
-    `).join('') || '<p>No workspaces.</p>'; // If no workspaces, show message
+    `).join('')) || '<p>No workspaces.</p>';
 
-    // Create a container div for each property
-    const pDiv = document.createElement("div");
-    pDiv.className = "property-item";
+    const pDiv = document.createElement('div');
+    pDiv.className = 'property-item';
     pDiv.id = `property-${pIndex}`;
-
-    // Add property details and the list of workspaces to container
     pDiv.innerHTML = `
       <div class="property-info">
-        <h3><span id="addr-${pIndex}">${property.address}</span> (<span id="neigh-${pIndex}">${property.neighborhood}</span>)</h3>
-        <p><strong>Sqft:</strong> <span id="sqft-${pIndex}">${property.sqft}</span></p>
-        <p><strong>Parking:</strong> <span id="park-${pIndex}">${property.parking}</span></p>
-        <p><strong>Transit:</strong> <span id="tran-${pIndex}">${property.transit}</span></p>
+        <h3><span id="addr-${pIndex}">${p.address}</span> (<span id="neigh-${pIndex}">${p.neighborhood}</span>)</h3>
+        <p><strong>Sqft:</strong> <span id="sqft-${pIndex}">${p.squareFeet}</span></p>
+        <p><strong>Parking:</strong> <span id="park-${pIndex}">${p.hasParking ? 'Yes' : 'No'}</span></p>
+        <p><strong>Transit:</strong> <span id="tran-${pIndex}">${p.hasTransit ? 'Yes' : 'No'}</span></p>
         <button onclick="enablePropertyEdit(${pIndex})">Update</button>
-        <button onclick="deleteProperty(${pIndex})">Delete</button>
+        <button onclick="deleteProperty('${p._id}', ${pIndex})">Delete</button>
       </div>
       <h4>Workspaces:</h4>
       ${workspacesHTML}
     `;
-
-    // Append property container to the output div
     output.appendChild(pDiv);
   });
 }
 
-// Enable editing mode for a property (replace display with input fields)
 function enablePropertyEdit(index) {
-  const prop = properties[index];
+  const p = properties[index];
   const pDiv = document.getElementById(`property-${index}`);
-
-  // Replace property info with editable input fields
   pDiv.innerHTML = `
     <div class="property-info">
       <h3>
-        Address: <input type="text" id="edit-addr-${index}" value="${prop.address}" />
-        Neighborhood: <input type="text" id="edit-neigh-${index}" value="${prop.neighborhood}" />
+        Address: <input type="text" id="edit-addr-${index}" value="${p.address}" />
+        Neighborhood: <input type="text" id="edit-neigh-${index}" value="${p.neighborhood}" />
       </h3>
       <p>
-        Sqft: <input type="number" id="edit-sqft-${index}" value="${prop.sqft}" /><br />
+        Sqft: <input type="number" id="edit-sqft-${index}" value="${p.squareFeet}" /><br />
         Parking:
         <select id="edit-park-${index}">
-          <option value="Yes" ${prop.parking === "Yes" ? "selected" : ""}>Yes</option>
-          <option value="No" ${prop.parking === "No" ? "selected" : ""}>No</option>
+          <option value="Yes" ${p.hasParking ? 'selected' : ''}>Yes</option>
+          <option value="No" ${!p.hasParking ? 'selected' : ''}>No</option>
         </select><br />
         Transit:
         <select id="edit-tran-${index}">
-          <option value="Yes" ${prop.transit === "Yes" ? "selected" : ""}>Yes</option>
-          <option value="No" ${prop.transit === "No" ? "selected" : ""}>No</option>
+          <option value="Yes" ${p.hasTransit ? 'selected' : ''}>Yes</option>
+          <option value="No" ${!p.hasTransit ? 'selected' : ''}>No</option>
         </select>
       </p>
       <button onclick="updateProperty(${index})">Save</button>
       <button onclick="render()">Cancel</button>
     </div>
     <h4>Workspaces:</h4>
-    ${prop.workspaces?.map((w, wIndex) => `
+    ${(p.workspaces?.map((w, wIndex) => `
       <div class="property-info" id="workspace-${index}-${wIndex}">
         <p><strong>Type:</strong> ${w.type}</p>
-        <p><strong>Capacity:</strong> ${w.capacity}</p>
-        <p><strong>Smoking:</strong> ${w.smoking}</p>
-        <p><strong>Availability:</strong> ${w.availability}</p>
+        <p><strong>Seats:</strong> ${w.seats}</p>
+        <p><strong>Smoking:</strong> ${w.smokingAllowed ? 'Yes' : 'No'}</p>
+        <p><strong>Available From:</strong> ${new Date(w.availableFrom).toLocaleDateString()}</p>
         <p><strong>Lease Term:</strong> ${w.leaseTerm}</p>
         <p><strong>Price:</strong> $${w.price}</p>
-        <button onclick="enableWorkspaceEdit(${index}, ${wIndex})">Update</button>
-        <button onclick="deleteWorkspace(${index}, ${wIndex})">Delete</button>
+        <button onclick="enableWorkspaceEdit('${p._id}','${w._id}', ${index}, ${wIndex})">Update</button>
+        <button onclick="deleteWorkspace('${w._id}', ${index}, ${wIndex})">Delete</button>
       </div>
-    `).join('') || '<p>No workspaces.</p>'}
+    `).join('')) || '<p>No workspaces.</p>'}
   `;
 }
 
-// Save the updated property details from inputs back into properties array and localStorage
-function updateProperty(index) {
+async function updateProperty(index) {
   const p = properties[index];
-  p.address = document.getElementById(`edit-addr-${index}`).value;
-  p.neighborhood = document.getElementById(`edit-neigh-${index}`).value;
-  p.sqft = document.getElementById(`edit-sqft-${index}`).value;
-  p.parking = document.getElementById(`edit-park-${index}`).value;
-  p.transit = document.getElementById(`edit-tran-${index}`).value;
-  save();
-  alert("Property updated!");
+  const payload = {
+    address: document.getElementById(`edit-addr-${index}`).value,
+    neighborhood: document.getElementById(`edit-neigh-${index}`).value,
+    squareFeet: Number(document.getElementById(`edit-sqft-${index}`).value),
+    hasParking: document.getElementById(`edit-park-${index}`).value === 'Yes',
+    hasTransit: document.getElementById(`edit-tran-${index}`).value === 'Yes'
+  };
+  const res = await fetch(`${API}/api/properties/${p._id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(payload)
+  });
+  const out = await res.json();
+  if (!out.ok) return alert(out.error || 'Update failed');
+  properties[index] = out.data;
+  alert('Property updated!');
+  saveRender();
 }
 
-// Delete a property after confirmation and update storage & UI
-function deleteProperty(index) {
-  if (confirm("Delete this property?")) {
-    properties.splice(index, 1);
-    save();
-  }
+async function deleteProperty(id, index) {
+  if (!confirm('Delete this property?')) return;
+  const res = await fetch(`${API}/api/properties/${id}`, { method: 'DELETE', headers: { ...authHeaders() } });
+  const out = await res.json();
+  if (!out.ok) return alert(out.error || 'Delete failed');
+  properties.splice(index, 1);
+  saveRender();
 }
 
-// Enable editing mode for a workspace (replace display with input fields)
-function enableWorkspaceEdit(pIndex, wIndex) {
+function enableWorkspaceEdit(propId, wsId, pIndex, wIndex) {
   const w = properties[pIndex].workspaces[wIndex];
   const div = document.getElementById(`workspace-${pIndex}-${wIndex}`);
-
-  // Replace workspace details with editable input fields
+  const iso = new Date(w.availableFrom).toISOString().slice(0, 10);
   div.innerHTML = `
     <p>
       Type: <input type="text" id="edit-type-${pIndex}-${wIndex}" value="${w.type}" />
-      Capacity: <input type="number" id="edit-cap-${pIndex}-${wIndex}" value="${w.capacity}" />
+      Seats: <input type="number" id="edit-cap-${pIndex}-${wIndex}" value="${w.seats}" />
       Smoking:
       <select id="edit-smoke-${pIndex}-${wIndex}">
-        <option value="Yes" ${w.smoking === "Yes" ? "selected" : ""}>Yes</option>
-        <option value="No" ${w.smoking === "No" ? "selected" : ""}>No</option>
+        <option value="Yes" ${w.smokingAllowed ? 'selected' : ''}>Yes</option>
+        <option value="No" ${!w.smokingAllowed ? 'selected' : ''}>No</option>
       </select>
-      Availability:
-      <select id="edit-avail-${pIndex}-${wIndex}">
-        <option value="Available" ${w.availability === "Available" ? "selected" : ""}>Available</option>
-        <option value="Unavailable" ${w.availability === "Unavailable" ? "selected" : ""}>Unavailable</option>
-      </select>
+      Available From: <input type="date" id="edit-avail-${pIndex}-${wIndex}" value="${iso}" />
       Lease Term: <input type="text" id="edit-lease-${pIndex}-${wIndex}" value="${w.leaseTerm}" />
       Price: <input type="number" id="edit-price-${pIndex}-${wIndex}" value="${w.price}" />
     </p>
-    <button onclick="updateWorkspace(${pIndex}, ${wIndex})">Save</button>
+    <button onclick="updateWorkspace('${wsId}', ${pIndex}, ${wIndex})">Save</button>
     <button onclick="render()">Cancel</button>
   `;
 }
 
-// Save the updated workspace details back into properties array and localStorage
-function updateWorkspace(pIndex, wIndex) {
+async function updateWorkspace(wsId, pIndex, wIndex) {
   const w = properties[pIndex].workspaces[wIndex];
-  w.type = document.getElementById(`edit-type-${pIndex}-${wIndex}`).value;
-  w.capacity = document.getElementById(`edit-cap-${pIndex}-${wIndex}`).value;
-  w.smoking = document.getElementById(`edit-smoke-${pIndex}-${wIndex}`).value;
-  w.availability = document.getElementById(`edit-avail-${pIndex}-${wIndex}`).value;
-  w.leaseTerm = document.getElementById(`edit-lease-${pIndex}-${wIndex}`).value;
-  w.price = document.getElementById(`edit-price-${pIndex}-${wIndex}`).value;
-  save();
-  alert("Workspace updated!");
+  const payload = {
+    type: document.getElementById(`edit-type-${pIndex}-${wIndex}`).value,
+    seats: Number(document.getElementById(`edit-cap-${pIndex}-${wIndex}`).value),
+    smokingAllowed: document.getElementById(`edit-smoke-${pIndex}-${wIndex}`).value === 'Yes',
+    availableFrom: new Date(document.getElementById(`edit-avail-${pIndex}-${wIndex}`).value).toISOString(),
+    leaseTerm: document.getElementById(`edit-lease-${pIndex}-${wIndex}`).value,
+    price: Number(document.getElementById(`edit-price-${pIndex}-${wIndex}`).value)
+  };
+  const res = await fetch(`${API}/api/workspaces/${wsId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(payload)
+  });
+  const out = await res.json();
+  if (!out.ok) return alert(out.error || 'Update failed');
+
+  // Replace local copy then re-render
+  properties[pIndex].workspaces[wIndex] = out.data;
+  alert('Workspace updated!');
+  render();
 }
 
-// Delete a workspace after confirmation and update storage & UI
-function deleteWorkspace(pIndex, wIndex) {
-  if (confirm("Delete this workspace?")) {
-    properties[pIndex].workspaces.splice(wIndex, 1);
-    save();
-  }
+async function deleteWorkspace(wsId, pIndex, wIndex) {
+  if (!confirm('Delete this workspace?')) return;
+  const res = await fetch(`${API}/api/workspaces/${wsId}`, { method: 'DELETE', headers: { ...authHeaders() } });
+  const out = await res.json();
+  if (!out.ok) return alert(out.error || 'Delete failed');
+  properties[pIndex].workspaces.splice(wIndex, 1);
+  render();
 }
 
-// Initial render on page load
-render();
+document.addEventListener('DOMContentLoaded', async () => {
+  const currentUser = JSON.parse(localStorage.getItem('loggedInUser'));
+  if (!currentUser) { output.innerHTML = '<p>No properties to manage (not logged in).</p>'; return; }
+  try { await loadMine(); } catch (e) { output.innerHTML = `<p>${e.message}</p>`; }
+});

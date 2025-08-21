@@ -1,73 +1,53 @@
-// Run the function after the DOM content is fully loaded
-document.addEventListener("DOMContentLoaded", () => {
-  // Get the output container where properties will be displayed
-  const output = document.getElementById("output");
+document.addEventListener('DOMContentLoaded', async () => {
+  const output = document.getElementById('output');
+  const currentUser = JSON.parse(localStorage.getItem('loggedInUser'));
+  if (!currentUser) { output.innerHTML = '<p>Please log in to view your properties.</p>'; return; }
 
-  // Get the currently logged-in user from localStorage and parse it
-  const currentUser = JSON.parse(localStorage.getItem("loggedInUser"));
+  try {
+    const res = await fetch(`${API}/api/properties/mine`, { headers: { ...authHeaders() } });
+    const out = await res.json();
+    if (!out.ok) { output.innerHTML = `<p>${out.error || 'Failed to load'}</p>`; return; }
 
-  // Get all properties stored in localStorage (or an empty array if none)
-  const properties = JSON.parse(localStorage.getItem("properties") || "[]");
+    const userProperties = out.data;
+    if (!userProperties.length) { output.innerHTML = '<p>You have no properties added yet.</p>'; return; }
 
-  // If no user is logged in, show a message and stop further execution
-  if (!currentUser) {
-    output.innerHTML = "<p>Please log in to view your properties.</p>";
-    return;
+    output.innerHTML = '';
+    userProperties.forEach(p => {
+      const parking = p.hasParking ? 'Yes' : 'No';
+      const transit = p.hasTransit ? 'Yes' : 'No';
+      const div = document.createElement('div');
+      div.classList.add('property-card');
+      div.innerHTML = `
+        <h3>${p.address} (${p.neighborhood})</h3>
+        <p><strong>Sqft:</strong> ${p.squareFeet} <br />
+           <strong>Parking:</strong> ${parking} <br />
+           <strong>Transit:</strong> ${transit}</p>
+        <h4>Workspaces:</h4>
+        <ul id="ws-${p._id}">
+          ${(p.workspaces?.length ? p.workspaces.map(w => `
+            <li><strong>Type:</strong> ${w.type}, <strong>Seats:</strong> ${w.seats},
+                <strong>Smoking:</strong> ${w.smokingAllowed ? 'Allowed' : 'Not Allowed'},
+                <strong>Available from:</strong> ${new Date(w.availableFrom).toLocaleDateString()},
+                <strong>Lease:</strong> ${w.leaseTerm},
+                <strong>Price:</strong> $${w.price}</li>`).join('') : '<li>No workspaces added.</li>')
+          }
+        </ul>
+        <hr />
+      `;
+      output.appendChild(div);
+    });
+  } catch {
+    output.innerHTML = '<p>Network error.</p>';
   }
+  const pics = (p.photos && p.photos.length)
+  ? `<div class="photos">${p.photos.map(u => `<img src="${u}" style="width:90px;height:70px;object-fit:cover;border-radius:6px;margin:4px;">`).join('')}</div>`
+  : '<p>No photos.</p>';
 
-  // Filter properties to include only those owned by the current user
-  const userProperties = properties.filter(p => p.owner === currentUser.email);
-
-  // If the user has no properties, show a message and stop further execution
-  if (userProperties.length === 0) {
-    output.innerHTML = "<p>You have no properties added yet.</p>";
-    return;
-  }
-
-  // Clear the output container before adding property cards
-  output.innerHTML = "";
-
-  // Loop through each property owned by the user and display details
-  userProperties.forEach(p => {
-    // Convert boolean parking and transit values to readable "Yes" or "No"
-    const parking = p.parking ? "Yes" : "No";
-    const transit = p.transit ? "Yes" : "No";
-
-    // Create a new div element to hold the property card
-    const div = document.createElement("div");
-    div.classList.add("property-card"); // Add CSS class for styling
-
-    // Set the inner HTML of the property card with property details
-    div.innerHTML = `
-      <h3>${p.address} (${p.neighborhood})</h3>
-      <p>
-        <strong>Sqft:</strong> ${p.sqft} <br />
-        <strong>Parking:</strong> ${parking} <br />
-        <strong>Transit:</strong> ${transit}
-      </p>
-      <h4>Workspaces:</h4>
-      <ul>
-        ${
-          // If there are workspaces, map them into list items
-          p.workspaces && p.workspaces.length > 0
-            ? p.workspaces.map(w => `
-                <li>
-                  <strong>Type:</strong> ${w.type}, 
-                  <strong>Capacity:</strong> ${w.capacity}, 
-                  <strong>Smoking:</strong> ${w.smoking ? "Allowed" : "Not Allowed"}, 
-                  <strong>Availability:</strong> ${w.availability}, 
-                  <strong>Lease:</strong> ${w.leaseTerm}, 
-                  <strong>Price:</strong> $${w.price}
-                </li>
-              `).join("")
-            // If no workspaces, show a placeholder message
-            : "<li>No workspaces added.</li>"
-        }
-      </ul>
-      <hr />
-    `;
-
-    // Append the created property card div to the output container
-    output.appendChild(div);
-  });
+div.innerHTML = `
+  <h3>${p.address} (${p.neighborhood})</h3>
+  <p><strong>Sqft:</strong> ${p.squareFeet} • <strong>Parking:</strong> ${p.hasParking?'Yes':'No'} • <strong>Transit:</strong> ${p.hasTransit?'Yes':'No'}</p>
+  ${pics}
+  <h4>Workspaces:</h4>
+  ...
+`;
 });
