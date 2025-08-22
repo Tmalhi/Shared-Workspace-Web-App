@@ -1,4 +1,10 @@
 {
+  "type": "module",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" }
+}
+
+{
   "name": "shared-workspace-backend",
   "version": "1.0.0",
   "type": "module",
@@ -20,5 +26,6 @@
     "nodemon": "^3.1.0"
   }
 }
+
 
 
